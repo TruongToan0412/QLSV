@@ -25,10 +25,10 @@
     <div class="form-group">
         <label for="Gender" class="col-md-2 control-label">Gender:</label>
         <div class="col-md-3">
-            <select name="Gender" id="Gender" class="form-control" required>
-                <option value="Male" @(Model.Gender.ToString() == "Male" ? "selected" : "")>Male</option>
-                <option value="Female" @(Model.Gender.ToString() == "Female" ? "selected" : "")>Female</option>
-            </select>
+            <div>
+                @Html.RadioButtonFor(model => model.Gender, true, new { id = "Male", name = "Gender" }) Nam
+                @Html.RadioButtonFor(model => model.Gender, false, new { id = "Female", name = "Gender" }) Nữ
+            </div>
         </div>
     </div>
 
@@ -66,21 +66,24 @@
     </div>
 
     <div class="form-group">
-        <label class="control-label col-md-2" for="ClassID">Tên lớp:</label>
+        <label for="ClassID" class="control-label col-md-2">Lớp:</label>
         <div class="col-md-3">
             @{
-                List<test3.Models.Class> dslop = db.Classes.ToList();
+                var selectedClassId = Model.ClassID;
+                List<SelectListItem> classList = new List<SelectListItem>();
+                if (selectedClassId != null)
+                {
+                    var selectedClass = db.Classes.Find(selectedClassId);
+                    classList.Add(new SelectListItem { Text = selectedClass.ClassName, Value = selectedClass.ClassID.ToString(), Selected = true });
+                }
             }
-
-            @Html.DropDownListFor(model => model.ClassID, new SelectList(dslop, "ClassID", "ClassName"), "Chọn lớp...", new { @class = "form-control", id = "ClassID" })
+            @Html.DropDownListFor(model => model.ClassID, classList, "Chọn lớp...", new { @class = "form-control", id = "ClassID" })
         </div>
     </div>
 
     <div class="form-group">
         <div class="col-md-offset-2 col-md-3">
-
-            <input type="submit" name="action" value="Sửa" class="btn btn-primary btn-primary-margin">
-            <input type="submit" name="action" value="Xóa" class="btn btn-primary">
+            <input type="button" id="btn-sua" name="action" value="Sửa" class="btn btn-primary">
         </div>
     </div>
 
@@ -89,10 +92,62 @@
     </div>
 </form>
 
-
 <style>
     .btn-primary-margin {
         margin-right: 70px;
     }
 </style>
 
+<script>
+    $(document).ready(function () {
+        $("#btn-sua").click(function () {
+            var form = $('form')[0];
+            if (form.checkValidity() === false) {
+                form.reportValidity();
+                return;
+            }
+            var formData = new FormData(form);
+            $.ajax({
+                type: "POST",
+                data: formData,
+                contentType: "application/json; charset=utf-8",
+                url: window.location.origin + '/QLSV/Suathongtin',
+                processData: false,
+                contentType: false,
+                cache: false,
+                success: function (response) {
+                    window.location.href = window.location.origin + '/QLSV/DanhSachSinhVien';
+                },
+                error: function (response) {
+                    /*if (response.responseText === "Sinh viên đã tồn tại với số điện thoại này.") {
+                        $("#error-message").text(response.responseText);
+                    } else {
+                        alert("Thêm mới thất bại");
+                    }*/
+                }
+            });
+        });
+    });
+    $(document).ready(function () {
+        $("#DepartmentID").change(function () {
+            var selectedDepartmentId = $(this).val();
+
+            $.ajax({
+                url: '/QLSV/GetClassesByDepartment', // Thay đổi đường dẫn tới action của bạn
+                type: 'GET',
+                dataType: 'json',
+                data: { departmentId: selectedDepartmentId },
+                success: function (classes) {
+                    var classDropdown = $("#ClassID");
+                    classDropdown.find('option').not(':first').remove();
+                    $.each(classes, function (index, cls) {
+                        classDropdown.append($('<option></option>').attr('value', cls.Value).text(cls.Text));
+                    });
+                },
+                error: function (error) {
+                    console.log(error);
+                }
+            });
+        });
+    });
+</script>
